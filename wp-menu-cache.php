@@ -96,7 +96,7 @@ final class WPMenuCache {
 	}
 
 
-	/*
+	
 	public function set_defaults( $fields ){
 
 		if( self::$settings_defaults == null ) self::$settings_defaults = array();
@@ -115,16 +115,17 @@ final class WPMenuCache {
 	}
 
 	function get_defaults( $section = null ){
-		if( self::$settings_defaults == null ) self::set_defaults( shiftnav_get_settings_fields() );
+		if( self::$settings_defaults == null ) self::set_defaults( wpmenucache_get_settings_fields() );
 
 		if( $section != null && isset( self::$settings_defaults[$section] ) ) return self::$settings_defaults[$section];
 		
 		return self::$settings_defaults;
 	}
+	
 
 	function get_default( $option , $section ){
 
-		if( self::$settings_defaults == null ) self::set_defaults( shiftnav_get_settings_fields() );
+		if( self::$settings_defaults == null ) self::set_defaults( wpmenucache_get_settings_fields() );
 
 		$default = '';
 
@@ -134,7 +135,7 @@ final class WPMenuCache {
 		}
 		return $default;
 	}
-	*/
+	
 
 }
 endif;

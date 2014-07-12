@@ -84,10 +84,13 @@ function wpmenucache_cache_menu( $nav_menu , $args ){
 	//Get the key for this menu
 	$key = wpmenucache_get_transient_key( $args );
 	//No key?  Just return what was passed without caching
-	if( !$key ) return $nav_menu;		
+	if( !$key ) return $nav_menu;
+
+	$expiration = wpmenucache_op( 'transient_expiration' );
+	if( !is_numeric( $expiration ) ) $expiration = 0;
 
 	//Cache the menu / store transient
-	set_transient( $key , $nav_menu );
+	set_transient( $key , $nav_menu , $expiration );
 
 	//Add key to transients key list
 	$keys = get_option( WPMENUCACHE_TRANSIENTS_KEYS_OP , array() );
@@ -101,9 +104,10 @@ function wpmenucache_cache_menu( $nav_menu , $args ){
 
 
 function wpmenucache_update_menu( $menu_id ){
-	wpmenucache_clear_transients();
-}
- 
+	if( wpmenucache_op( 'clear_transients_on_save' ) == 'on' ){
+		wpmenucache_clear_transients();
+	}
+} 
 add_action( 'wp_update_nav_menu', 'wpmenucache_update_menu' , 10 , 1 );
 
 
