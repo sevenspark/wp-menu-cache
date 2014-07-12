@@ -8,6 +8,9 @@ Author URI: http://sevenspark.com
 Version: 0.1
 */
 
+/* Copyright 2014 Chris Mavricos, SevenSpark */
+
+if ( !defined( 'ABSPATH' ) ) exit;
 
 //SETTINGS PANEL
 //  Clear Transients on Menu Save (on)
@@ -18,131 +21,127 @@ Version: 0.1
 //TODO: clear transients when saving UberMenu settings?
 
 
-define( 'WPMENUCACHE_TRANSIENT_PREFIX' , 'menucache_' );
-define( 'WPMENUCACHE_TRANSIENTS_KEYS_OP' , 'wpmenucache_keys' );
 
 //wpmenucache_clear_transients();
 //delete_transient( 'menucache_uber[main][primary]' );
 //delete_transient( 'menucache_uber[main][primary]' );
 //return;
 
-function wpmenucache_get_transient_key( $args ){
 
-	//TODO: Check for "Ignore Cache" flag by menu ID
+if ( !class_exists( 'WPMenuCache' ) ) :
 
-	//CACHE ON TWO AXES:
-	//- Menu ID
-	//- Theme Location
-	//
-	//Trim to 45 chars
+final class WPMenuCache {
+	/** Singleton *************************************************************/
 
-	//Cache based on passed arg 'menu_cache_key'
+	private static $instance;
+	private static $settings_api;
+	private static $settings_defaults;
 
-
-	$key = '';
-	$theme_location = '';
-	$menu_id = '';
-
-	//Manual Key
-	if( isset( $args->menu_cache_key ) && $args->menu_cache_key ){
-		$key = $args->menu_cache_key;
+	public static function instance() {
+		if ( ! isset( self::$instance ) ) {
+			self::$instance = new WPMenuCache;
+			self::$instance->setup_constants();
+			self::$instance->includes();
+		}
+		return self::$instance;
 	}
-	else{
-	
-		//Theme Location
-		if( isset( $args->theme_location ) && $args->theme_location ){
-			$theme_location = $args->theme_location;
-		}
 
-		//Menu
-		if( isset( $args->menu ) && $args->menu ){
-			$menu_id = $args->menu;
+	/**
+	 * Setup plugin constants
+	 *
+	 * @since 1.0
+	 * @access private
+	 * @uses plugin_dir_path() To generate plugin path
+	 * @uses plugin_dir_url() To generate plugin url
+	 */
+	private function setup_constants() {
+		// Plugin version
+
+		if( ! defined( 'WPMENUCACHE_VERSION' ) )
+			define( 'WPMENUCACHE_VERSION', '.1' );
+
+		if( ! defined( 'WPMENUCACHE_BASENAME' ) )
+			define( 'WPMENUCACHE_BASENAME' , plugin_basename( __FILE__ ) );
+
+		// Plugin Folder URL
+		if( ! defined( 'WPMENUCACHE_URL' ) )
+			define( 'WPMENUCACHE_URL', plugin_dir_url( __FILE__ ) );
+
+		// Plugin Folder Path
+		if( ! defined( 'WPMENUCACHE_DIR' ) )
+			define( 'WPMENUCACHE_DIR', plugin_dir_path( __FILE__ ) );
+
+		// Plugin Root File
+		if( ! defined( 'WPMENUCACHE_FILE' ) )
+			define( 'WPMENUCACHE_FILE', __FILE__ );
+
+
+		define( 'WPMENUCACHE_PREFIX' , 'wpmenucache_' );
+		define( 'WPMENUCACHE_TRANSIENT_PREFIX' , 'menucache_' );
+		define( 'WPMENUCACHE_TRANSIENTS_KEYS_OP' , 'wpmenucache_keys' );
+	}
+
+	private function includes() {
+		
+		require_once WPMENUCACHE_DIR . 'includes/functions.php';
+		require_once WPMENUCACHE_DIR . 'admin/admin.php';
+
+	}
+
+	public function settings_api(){
+		if( self::$settings_api == null ){
+			self::$settings_api = new WPMenuCache_Settings_API();
 		}
-		else{
-			if( $theme_location && has_nav_menu( $theme_location ) ){
-				$menus = get_nav_menu_locations();
-				$menu_id = $menus[$theme_location];
+		return self::$settings_api;
+	}
+
+
+	/*
+	public function set_defaults( $fields ){
+
+		if( self::$settings_defaults == null ) self::$settings_defaults = array();
+
+		foreach( $fields as $section_id => $ops ){
+
+			self::$settings_defaults[$section_id] = array();
+
+			foreach( $ops as $op ){
+				self::$settings_defaults[$section_id][$op['name']] = isset( $op['default'] ) ? $op['default'] : '';
 			}
 		}
 
-		//if neither is set, don't cache
-		if( !$theme_location && !$menu_id ){
-			return false;
+		//shiftp( $this->settings_defaults );
+
+	}
+
+	function get_defaults( $section = null ){
+		if( self::$settings_defaults == null ) self::set_defaults( shiftnav_get_settings_fields() );
+
+		if( $section != null && isset( self::$settings_defaults[$section] ) ) return self::$settings_defaults[$section];
+		
+		return self::$settings_defaults;
+	}
+
+	function get_default( $option , $section ){
+
+		if( self::$settings_defaults == null ) self::set_defaults( shiftnav_get_settings_fields() );
+
+		$default = '';
+
+		//echo "[[$section|$option]]  ";
+		if( isset( self::$settings_defaults[$section] ) && isset( self::$settings_defaults[$section][$option] ) ){
+			$default = self::$settings_defaults[$section][$option];
 		}
-
-		$key = "[$menu_id][$theme_location]";
+		return $default;
 	}
+	*/
 
-	$key = WPMENUCACHE_TRANSIENT_PREFIX.$key;
-
-	$key = substr( $key , 0 , 45 );	//45 is the max length of a transient
-
-	return $key;
 }
+endif;
 
-add_filter( 'pre_wp_nav_menu' , 'wpmenucache_get_cached_menu' , 10 , 2 );
-function wpmenucache_get_cached_menu( $nav_menu , $args ){
-
-	//up( get_option( WPMENUCACHE_TRANSIENTS_KEYS_OP , array() ) );
-	
-	//Get the key for this menu
-	$key = wpmenucache_get_transient_key( $args );
-	if( !$key ) return null;	//Don't cache
-	
-	//Get the cached menu
-	$menu = get_transient( $key );
-
-	//If the menu is cached, return it
-	if( $menu ){
-		$menu = 	"\n<!-- Cached by WP Menu Cache [$key] -->\n" .
-					$menu .
-					"\n<!-- end WP Menu Cache -->\n";
-		return $menu;
+if( !function_exists( '_WPMENUCACHE' ) ){
+	function _WPMENUCACHE() {
+		return WPMenuCache::instance();
 	}
-
-	//If the menu was not cached, return null so wp_nav_menu can do its thang
-	return null;
+	_WPMENUCACHE();
 }
-
-add_filter( 'wp_nav_menu' , 'wpmenucache_cache_menu' , 10 , 2 );
-function wpmenucache_cache_menu( $nav_menu , $args ){
-
-	//Get the key for this menu
-	$key = wpmenucache_get_transient_key( $args );
-	//No key?  Just return what was passed without caching
-	if( !$key ) return $nav_menu;		
-
-	//Cache the menu / store transient
-	set_transient( $key , $nav_menu );
-
-	//Add key to transients key list
-	$keys = get_option( WPMENUCACHE_TRANSIENTS_KEYS_OP , array() );
-	$keys[$key] = 'cached';
-
-	update_option( WPMENUCACHE_TRANSIENTS_KEYS_OP , $keys );
-	
-	//Return what was passed
-	return $nav_menu;
-}
-
-
-function wpmenucache_update_menu( $menu_id ){
-	wpmenucache_clear_transients();
-}
- 
-add_action( 'wp_update_nav_menu', 'wpmenucache_update_menu' , 10 , 1 );
-
-
-function wpmenucache_clear_transients(){
-	//Clear all the transients
-	$keys = get_option( WPMENUCACHE_TRANSIENTS_KEYS_OP , array() );
-	//up( $keys );
-	foreach( $keys as $key => $cached ){
-		//echo 'delete ' . $key . '<br/>';
-		delete_transient( $key );
-	}
-	//Reset Keys
-	update_option( WPMENUCACHE_TRANSIENTS_KEYS_OP , array() );
-}
-
-
