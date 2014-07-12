@@ -2,7 +2,7 @@
 /*
 Plugin Name: WP Menu Cache
 Plugin URI: http://sevenspark.com
-Description: Uber
+Description: Speed up menu generation by caching your menu output to minimze your database queries
 Author: Chris Mavricos, SevenSpark
 Author URI: http://sevenspark.com
 Version: 0.1
