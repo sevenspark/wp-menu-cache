@@ -119,6 +119,14 @@ function wpmenucache_get_settings_fields(){
 			),
 
 			array(
+				'name' => 'cache_per_page',
+				'label' => __( 'Cache Menu for each Page', 'wpmenucache' ),
+				'desc' => __( 'Cache the menu independently for each page.  This is important if you want things like current menu item highlighting to work.', 'shiftnav' ),
+				'type' => 'checkbox',
+				'default' => 'on'
+			),
+
+			array(
 				'name'	=> 'clear_transients',
 				'label'	=> __( 'Clear Cache' , 'wpmenucache' ),
 				'desc'	=> '<a class="button button-primary" href="'.admin_url('options-general.php?page=wpmenucache-settings&do=clear_cache').'">'.__( 'Clear Cache' , 'ubermenu' ).'</a><br/><p>'.__( 'Clear all menu transients.', 'ubermenu' ).'</p>',

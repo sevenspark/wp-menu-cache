@@ -77,7 +77,7 @@ final class WPMenuCache {
 
 
 		define( 'WPMENUCACHE_PREFIX' , 'wpmenucache_' );
-		define( 'WPMENUCACHE_TRANSIENT_PREFIX' , 'menucache_' );
+		define( 'WPMENUCACHE_TRANSIENT_PREFIX' , 'navcache' );
 		define( 'WPMENUCACHE_TRANSIENTS_KEYS_OP' , 'wpmenucache_keys' );
 	}
 

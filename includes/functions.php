@@ -44,18 +44,71 @@ function wpmenucache_get_transient_key( $args ){
 			return false;
 		}
 
-		$key = "[$menu_id][$theme_location]";
+		$key = "|$menu_id|$theme_location";
 	}
+
+	//Cache per page
+	if( wpmenucache_op( 'cache_per_page' ) == 'on' ){
+		$pid = '';
+		if( is_singular() ){
+			$pid = 'p'.get_the_id();
+		}
+		else if( is_home() ){
+			$pid = 'blog';
+		}
+		else if( is_front_page() ){
+			$pid = 'front';
+		}
+		else if( is_archive() ){
+			if( is_category() || is_tag() || is_tax() ){
+				$q = get_queried_object();
+				$pid = substr( $q->taxonomy , 0, 3 ).'_'.$q->term_id;
+			}
+			else if( is_author() ){
+				$pid = 'a'.get_the_author_meta( "ID" );
+			}
+			//Dates
+			else if( is_day() ){
+				$pid = get_the_date( 'Y_m_d' );
+			}
+			else if( is_month() ){
+				$pid = get_the_date( 'Y_m' );
+			}
+			else if( is_year() ){
+				$pid = get_the_date( 'Y' );
+			}
+			//Custom Post Type
+			else if( true ){
+				$pid = get_post_type();
+			}
+		}
+		else if( is_search() ){
+			$pid = 'search';
+		}
+		else if( is_404() ){
+			$pid = '404';
+		}
+
+		$key.= "|$pid";
+
+	}
+
+	
 
 	$key = WPMENUCACHE_TRANSIENT_PREFIX.$key;
 
 	$key = substr( $key , 0 , 45 );	//45 is the max length of a transient
-
+	
 	return $key;
 }
 
 add_filter( 'pre_wp_nav_menu' , 'wpmenucache_get_cached_menu' , 10 , 2 );
 function wpmenucache_get_cached_menu( $nav_menu , $args ){
+
+	//Ignore menu segments
+	if( isset( $args->uber_segment ) ){
+		return $nav_menu;
+	}
 
 	//up( get_option( WPMENUCACHE_TRANSIENTS_KEYS_OP , array() ) );
 	
@@ -80,6 +133,11 @@ function wpmenucache_get_cached_menu( $nav_menu , $args ){
 
 add_filter( 'wp_nav_menu' , 'wpmenucache_cache_menu' , 10 , 2 );
 function wpmenucache_cache_menu( $nav_menu , $args ){
+
+	//Ignore menu segments
+	if( isset( $args->uber_segment ) ){
+		return $nav_menu;
+	}
 
 	//Get the key for this menu
 	$key = wpmenucache_get_transient_key( $args );
