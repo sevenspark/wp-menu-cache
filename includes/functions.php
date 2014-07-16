@@ -313,7 +313,7 @@ function wpmenucache_update_menu( $menu_id ){
 	}
 } 
 add_action( 'wp_update_nav_menu', 'wpmenucache_update_menu' , 10 , 1 );
-
+add_action( 'ubermenu_after_menu_item_save' , 'wpmenucache_update_menu' , 20 , 1 );
 
 function wpmenucache_clear_transients(){
 
