@@ -27,8 +27,12 @@ function wpmenucache_do_clear_cache(){
 		}
 
 		if( isset( $_GET['do'] ) && $_GET['do'] == 'clear_cache' ){
+			$time_start = microtime();
 			wpmenucache_clear_transients();
-			$notice =  "Menu cache cleared";
+			$time_end = microtime();
+			$time = round( $time_end - $time_start , 4 );
+
+			$notice =  "Menu cache cleared in $time seconds";
 			add_settings_error( 'clear_cache' , 'clear-cache' , $notice , 'updated' );
 		}
 
@@ -67,6 +71,33 @@ function wpmenucache_settings_panel() {
  
 	?>
 
+	<script type="text/javascript">
+		jQuery( 'document' ).ready( function($){
+			$( '.wpmc-op-cache_type' ).on( 'change' , 'input[type="radio"]' , function(){
+				update_cache_type_ops( $(this) );
+			});
+
+			var $page = $( '.wpmc-op-cache_select_page' ).closest( 'tr' );
+			var $tax = $('.wpmc-op-cache_select_taxonomy' ).closest( 'tr' );
+			$selections = $page.add( $tax );
+
+			//console.log( $selections.size() );
+
+			function update_cache_type_ops( $selected ){
+				console.log( $selected.val() );
+				if( $selected.val() == 'select_global' ||
+					$selected.val() == 'select_only' ){
+						$selections.fadeIn();
+				}
+				else{
+					$selections.fadeOut();
+				}
+			}
+
+			update_cache_type_ops( $( '.wpmc-op-cache_type input[type="radio"]:checked' ) );
+		});
+	</script>
+
 	</div>
 
 	<?php
@@ -103,6 +134,55 @@ function wpmenucache_get_settings_fields(){
 		$prefix.'cache' => array(
 
 			array(
+				'name' => 'cache_type',
+				'label' => __( 'Cache Strategy', 'wpmenucache' ),
+				'desc' => __( '', 'shiftnav' ),
+				'options'	=> array(
+					'group'	=> array(
+						'select_global'	=> array(
+							'name' 		=> __( 'Selected Pages with Global Fallback', 'wpmenucache' ),
+							'desc'		=> __( 'Select the pages below to cache individually.  Unselected pages will use the global cache.' , 'ubermenu' ),
+						),
+						'select_only'	=> array(
+							'name'		=> __( 'Selected Pages Only', 'wpmenucache' ),
+							'desc'		=> __( 'Only cache the pages individually selected below.' , 'ubermenu' ),
+						),
+						'global'		=> array(
+							'name'		=> __( 'Global', 'wpmenucache' ),
+							'desc'		=> __( 'Cache each menu globally (no dynamic items per page like current menu items)' , 'ubermenu' ),
+						),
+						'all_individual'=> array(
+							'name'		=> __( 'All Pages Individually', 'wpmenucache' ),
+							'desc'		=> __( 'Cache each page independently (will result in lots of transients in the databse if you have many pages)' , 'ubermenu' ),
+						),						
+						'none'			=> array(
+							'name'		=> __( 'None', 'wpmenucache' ),
+							'desc'		=> __( 'Disable caching' , 'ubermenu' ),
+						),
+
+					),
+				),
+				'type' => 'radio_advanced',
+				'default' => 'select_global'
+			),
+
+			array(
+				'name' => 'cache_select_page',
+				'label' => __( 'Select Page Cache', 'wpmenucache' ),
+				'desc' => __( 'Cache the menus for these pages individually.', 'shiftnav' ),
+				'type' => 'multicheck_groups',
+				'options'	=> 'wpmenucache_select_page_ops'
+			),
+
+			array(
+				'name' => 'cache_select_taxonomy',
+				'label' => __( 'Select Taxonomy Cache', 'wpmenucache' ),
+				'desc' => __( 'Cache the menus for these pages individually.', 'shiftnav' ),
+				'type' => 'multicheck_groups',
+				'options'	=> 'wpmenucache_select_tax_ops'
+			),
+
+			array(
 				'name' => 'clear_transients_on_save',
 				'label' => __( 'Clear Cache on Save', 'wpmenucache' ),
 				'desc' => __( 'Clear the menu transients when a menu is saved.  If you disable this, you\'ll need to clear the cache manually in order to see any changes.', 'shiftnav' ),
@@ -113,7 +193,7 @@ function wpmenucache_get_settings_fields(){
 			array(
 				'name' => 'transient_expiration',
 				'label' => __( 'Cache Expiration', 'wpmenucache' ),
-				'desc' => __( 'Time in seconds until the menu will refresh.  To make this take effect immediately, don\'t forget to clear the existing cache.', 'shiftnav' ),
+				'desc' => __( 'Time in seconds until the menu will refresh.  To make this take effect immediately, don\'t forget to clear the existing cache.  A value of <code>0</code> means the cache will never expire unless cleared.', 'shiftnav' ),
 				'type' => 'text',
 				'default' => 0,
 			),
@@ -134,9 +214,109 @@ function wpmenucache_get_settings_fields(){
 			),
 		)
 	);
-
+//wpmenucache_clear_transients();
 	return $fields;
 
+}
+
+function wpmenucache_select_tax_ops(){
+	$ops = array();
+	 
+	$taxonomies = get_taxonomies( array( 
+			'public' => true , 
+			//'hierarchical'	=> true,
+			//'publicly_queryable' => true 
+		) , 
+		'objects' );
+
+	$ops['quick'] = array(
+	 	'name'	=> 'Taxonomy Groups',
+	 	'ops'	=> array()
+	 );
+	
+	foreach( $taxonomies as $slug => $tax ){
+		$ops['quick']['ops']['_all_'.$slug] = 'All '.$tax->label;
+	}
+
+
+	$taxonomies = get_taxonomies( array( 
+			'public' => true , 
+			'hierarchical'	=> true,
+			//'publicly_queryable' => true 
+		) , 
+		'objects' );
+
+	//uberp( $types );
+
+	foreach( $taxonomies as $slug => $tax ){
+
+		$terms = get_terms( $slug, array(
+	 		'number'  => 200,
+	 		'orderby' => 'name',
+	 	) );
+
+	 	if( count( $terms ) == 0 ) continue;
+//uberp( $tax );
+		$ops[$slug] = array( 'name' => $tax->label , 'ops' => array() );
+
+
+	 	foreach( $terms as $t ){
+	 		$ops[$slug]['ops'][$t->term_id] = $t->name;
+	 	}
+		
+	}
+
+	return $ops;
+}
+
+function wpmenucache_select_page_ops(){
+
+	$ops = array();
+	 
+	$types = get_post_types( array( 
+			'public' => true , 
+			//'publicly_queryable' => true 
+		) , 
+		'objects' );
+
+	$ops['special'] = array(
+	 	'name'	=> 'Special',
+	 	'ops'	=> array()
+	 );
+	
+	$ops['special']['ops']['_front'] = 'Front Page';
+	$ops['special']['ops']['_home'] = 'Home (Blog) Page';
+	$ops['special']['ops']['_search'] = 'Search Results';
+	$ops['special']['ops']['_404'] = '404';
+
+	foreach( $types as $slug => $type ){
+		$ops['special']['ops']['_all_'.$slug] = 'All '.$type->label;	
+	}
+
+	//uberp( $types );
+
+	foreach( $types as $slug => $type ){
+//uberp( $type );
+		if( $slug == 'attachment' ) continue;
+
+		$posts = get_posts( array(
+	 		'post_type'	=> $slug,
+	 		'posts_per_page' => -1,
+	 		'show_in_nav_menus'	=> true,
+	 		'orderby' => 'name',
+	 	) );
+
+	 	if( count( $posts ) == 0 ) continue;
+
+		$ops[$slug] = array( 'name' => $type->label , 'ops' => array() );
+
+	 	foreach( $posts as $p ){
+	 		$ops[$slug]['ops'][$p->ID] = $p->post_title;
+	 	}
+		
+	}
+
+	return $ops;
 }
 
 /**

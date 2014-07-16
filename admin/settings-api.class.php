@@ -173,10 +173,11 @@ class WPMenuCache_Settings_API {
 
 		$value = esc_attr( $this->get_option( $args['id'], $args['section'], $args['std'] ) );
 
-		$html = sprintf( '<input type="hidden" name="%1$s[%2$s]" value="off" />', $args['section'], $args['id'] );
+		$html = '<div class="wpmc-op-'.$args['id'].'">';
+		$html .= sprintf( '<input type="hidden" name="%1$s[%2$s]" value="off" />', $args['section'], $args['id'] );
 		$html .= sprintf( '<input type="checkbox" class="checkbox" id="%1$s[%2$s]" name="%1$s[%2$s]" value="on"%4$s />', $args['section'], $args['id'], $value, checked( $value, 'on', false ) );
 		$html .= sprintf( '<label for="%1$s[%2$s]"> %3$s</label>', $args['section'], $args['id'], $args['desc'] );
-
+		$html .= '</div>';
 		echo $html;
 	}
 
@@ -189,14 +190,64 @@ class WPMenuCache_Settings_API {
 
 		$value = $this->get_option( $args['id'], $args['section'], $args['std'] );
 
-		$html = '';
-		foreach ( $args['options'] as $key => $label ) {
+		$options = $args['options'];
+		if( !is_array( $options ) && function_exists( $options ) ){
+			$options = $options();
+		}
+
+		$html = '<div class="wpmc-op-'.$args['id'].'">';
+		$html .= '<div class="wpmc-multicheck-wrap">';
+		foreach ( $options as $key => $label ) {
+			$html .= '<div class="wpmc-multicheck-op">';
 			$checked = isset( $value[$key] ) ? $value[$key] : '0';
 			$html .= sprintf( '<input type="checkbox" class="checkbox" id="%1$s[%2$s][%3$s]" name="%1$s[%2$s][%3$s]" value="%3$s"%4$s />', $args['section'], $args['id'], $key, checked( $checked, $key, false ) );
-			$html .= sprintf( '<label for="%1$s[%2$s][%4$s]"> %3$s</label><br>', $args['section'], $args['id'], $label, $key );
+			$html .= sprintf( '<label for="%1$s[%2$s][%4$s]"> %3$s</label>', $args['section'], $args['id'], $label, $key );
+			$html .= '</div>';
+		}
+		
+		$html .= '</div>';
+		$html .= sprintf( '<span class="description"> %s</label>', $args['desc'] );
+		$html .= '</div>';
+		echo $html;
+	}
+
+	/**
+	 * Displays a multicheckbox a settings field
+	 *
+	 * @param array   $args settings field args
+	 */
+	function callback_multicheck_groups( $args ) {
+
+		$value = $this->get_option( $args['id'], $args['section'], $args['std'] );
+
+		$options = $args['options'];
+		if( !is_array( $options ) && function_exists( $options ) ){
+			$options = $options();
+		}
+
+		$html = '<div class="wpmc-op-'.$args['id'].'">';
+		$html.= '<div class="wpmc-multicheck-wrap">';
+
+		foreach ( $options as $group_id => $group_ops ) {
+
+			$html.= '<h4>'.$group_ops['name'].'</h4>';
+
+			$html.= '<div class="wpmc-multicheck-group">';
+			$ops = $group_ops['ops'];
+			foreach ( $ops as $key => $label ) {
+				$html.= '<div class="wpmc-multicheck-op">';
+				$checked = isset( $value[$key] ) ? $value[$key] : '0';
+				$html .= sprintf( '<input type="checkbox" class="checkbox" id="%1$s[%2$s][%3$s]" name="%1$s[%2$s][%3$s]" value="%3$s"%4$s />', $args['section'], $args['id'], $key, checked( $checked, $key, false ) );
+				$html .= sprintf( '<label for="%1$s[%2$s][%4$s]"> %3$s</label>', $args['section'], $args['id'], $label, $key );
+				$html .= '</div>';
+			}
+			
+			$html .= '</div>';
 		}
 		$html .= sprintf( '<span class="description"> %s</label>', $args['desc'] );
 
+		$html.= '</div>';
+		$html.= '</div>';
 		echo $html;
 	}
 
@@ -215,6 +266,26 @@ class WPMenuCache_Settings_API {
 			$html .= sprintf( '<label for="%1$s[%2$s][%4$s]"> %3$s</label><br>', $args['section'], $args['id'], $label, $key );
 		}
 		$html .= sprintf( '<span class="description"> %s</label>', $args['desc'] );
+
+		echo $html;
+	}
+
+	function callback_radio_advanced( $args ) {
+
+		$value = $this->get_option( $args['id'], $args['section'], $args['std'] );
+
+		$html = '<div class="wpmc-op-'.$args['id'].'">';
+		foreach ( $args['options'] as $group_id => $group_op ) {
+
+			foreach( $group_op as $key => $op_data ){
+				$label = $op_data['name'];
+				$html .= sprintf( '<input type="radio" class="radio" id="%1$s[%2$s][%3$s]" name="%1$s[%2$s]" value="%3$s"%4$s />', $args['section'], $args['id'], $key, checked( $value, $key, false ) );
+				$html .= sprintf( '<label for="%1$s[%2$s][%4$s]"> %3$s</label><br>', $args['section'], $args['id'], $label, $key );
+				$html .= sprintf( '<span class="uber-radio-description"> %s</span><br/>', $op_data['desc'] );
+			}
+		}
+		$html .= sprintf( '<span class="description"> %s</label>', $args['desc'] );
+		$html.= '</div>';
 
 		echo $html;
 	}

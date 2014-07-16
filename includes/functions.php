@@ -1,6 +1,6 @@
 <?php
 
-function wpmenucache_get_transient_key( $args ){
+function wpmenucache_get_transient_key( $args , $check_select = false ){
 
 	//TODO: Check for "Ignore Cache" flag by menu ID
 
@@ -48,62 +48,197 @@ function wpmenucache_get_transient_key( $args ){
 	}
 
 	//Cache per page
-	if( wpmenucache_op( 'cache_per_page' ) == 'on' ){
-		$pid = '';
-		if( is_singular() ){
-			$pid = 'p'.get_the_id();
-		}
-		else if( is_home() ){
-			$pid = 'blog';
-		}
-		else if( is_front_page() ){
-			$pid = 'front';
-		}
-		else if( is_archive() ){
-			if( is_category() || is_tag() || is_tax() ){
-				$q = get_queried_object();
-				$pid = substr( $q->taxonomy , 0, 3 ).'_'.$q->term_id;
-			}
-			else if( is_author() ){
-				$pid = 'a'.get_the_author_meta( "ID" );
-			}
-			//Dates
-			else if( is_day() ){
-				$pid = get_the_date( 'Y_m_d' );
-			}
-			else if( is_month() ){
-				$pid = get_the_date( 'Y_m' );
-			}
-			else if( is_year() ){
-				$pid = get_the_date( 'Y' );
-			}
-			//Custom Post Type
-			else if( true ){
-				$pid = get_post_type();
-			}
-		}
-		else if( is_search() ){
-			$pid = 'search';
-		}
-		else if( is_404() ){
-			$pid = '404';
-		}
+	// $cache_type = wpmenucache_op( 'cache_type' );
+	// if( $cache_type == 'select_global' || $cache_type == 'select_only' ){		
+	// 	$key.= wpmenucache_get_individual_page_key();
 
-		$key.= "|$pid";
+	//}
 
-	}
+	//If individual caching is a possibility - select_global, select_only, individual
+	if( wpmenucache_cache_individually() ){
 
-	
+		$page_key = wpmenucache_get_individual_page_key( $check_select );
+		
+		//If there is an individual key here
+		if( $page_key ){
+			$key.= '|'.$page_key;
+		}
+		//If there's no individual key, and we're select only, return false
+		else if( wpmenucache_op( 'cache_type' ) == 'select_only' ){
+			return false;
+		}
+	}	
 
 	$key = WPMENUCACHE_TRANSIENT_PREFIX.$key;
-
 	$key = substr( $key , 0 , 45 );	//45 is the max length of a transient
 	
 	return $key;
 }
 
+function wpmenucache_cache_state(){
+	$cache_type = wpmenucache_op( 'cache_type' );
+
+	switch( $cache_type ){
+		case 'none':
+			return 0;
+		
+		case 'global':
+		case 'all_individual':
+			return 1;
+
+		case 'select_only':
+		case 'select_global':
+			return 2;
+
+		default:
+			return 0;
+	}
+}
+
+function wpmenucache_cache_individually(){
+
+	$cache_type = wpmenucache_op( 'cache_type' );
+
+	switch( $cache_type ){
+		case 'global':
+		case 'none':
+			return false;
+		case 'all_individual':
+		case 'select_only':
+		case 'select_global':
+			return true;
+	}
+}
+
+/*
+function wpmenucache_cache_individually(){
+
+	$cache_type = wpmenucache_op( 'cache_type' );
+
+	switch( $cache_type ){
+
+		case 'global':
+			return false;
+		case 'all_individual':
+			return true;
+
+		case 'select_only':
+		case 'select_global':
+			return wpmenucache_matches_select();
+
+		case 'none':
+			return false;
+	}
+}
+*/
+
+
+
+function wpmenucache_get_individual_page_key( $check_select = false ){
+
+	$select_pages = $select_tax = false;
+
+	if( $check_select ){
+		//echo 'selects:';
+		$select_pages = wpmenucache_op( 'cache_select_page' );
+		if( $select_pages === '' ) $select_pages = array();
+		//uberp( $select_pages );
+
+		$select_tax = wpmenucache_op( 'cache_select_taxonomy' );
+		if( $select_tax === '' ) $select_tax = array();
+		//uberp( $select_tax );
+	}
+//echo '//'.get_post_type().'//';
+
+	$pid = '';
+	if( is_home() ){
+		if( !$check_select || 
+			isset( $select_pages['_home'] ) ){
+			return 'blog';
+		}
+	}
+	if( is_front_page() ){
+		if( !$check_select || 
+			isset( $select_pages['_front'] ) ){
+			return 'front';
+		}
+	}
+
+	if( is_singular() ){
+		$id = get_the_id();
+
+		if( !$check_select || 
+			isset( $select_pages[$id] ) ||
+			isset( $select_pages['_all_'.get_post_type()] ) ){
+			return 'p'.$id;
+		}
+	}
+	
+	if( is_archive() ){
+		if( is_category() || is_tag() || is_tax() ){
+			$q = get_queried_object();
+			$term_id = $q->term_id;
+			if( !$check_select || 
+				isset( $select_tax[$term_id] ) ||
+				isset( $select_tax['_all_'.$q->taxonomy] ) ){
+				return substr( $q->taxonomy , 0, 3 ).'_'.$term_id;
+			}
+		}
+		else if( is_author() ){
+			if( !$check_select ){
+				return 'a'.get_the_author_meta( "ID" );
+			}
+		}
+		//Dates
+		else if( is_day() ){
+			if( !$check_select ){
+				return get_the_date( 'Y_m_d' );
+			}
+		}
+		else if( is_month() ){
+			if( !$check_select ){
+				return get_the_date( 'Y_m' );
+			}
+		}
+		else if( is_year() ){
+			if( !$check_select ){
+				return get_the_date( 'Y' );
+			}
+		}
+		//Custom Post Type
+		else if( true ){
+			if( !$check_select || 
+				isset( $select_tax[get_post_type()] ) ){
+				return get_post_type();
+			}
+		}
+	}
+	else if( is_search() ){
+		if( !$check_select ||
+			isset( $select_pages['_search'] ) ){
+			$pid = 'search';
+		}
+	}
+	else if( is_404() ){
+		if( !$check_select ||
+			isset( $select_pages['_404'] )){
+			$pid = '404';
+		}
+	}
+
+	return $pid;
+}
+
 add_filter( 'pre_wp_nav_menu' , 'wpmenucache_get_cached_menu' , 10 , 2 );
 function wpmenucache_get_cached_menu( $nav_menu , $args ){
+
+	$check_select = false;
+	switch( wpmenucache_cache_state() ){
+		case 0: return null;
+		case 1:	break;
+		case 2:	$check_select = true;
+				break;
+	}
 
 	//Ignore menu segments
 	if( isset( $args->uber_segment ) ){
@@ -113,7 +248,8 @@ function wpmenucache_get_cached_menu( $nav_menu , $args ){
 	//up( get_option( WPMENUCACHE_TRANSIENTS_KEYS_OP , array() ) );
 	
 	//Get the key for this menu
-	$key = wpmenucache_get_transient_key( $args );
+	$key = wpmenucache_get_transient_key( $args , $check_select );
+	//echo $key;
 	if( !$key ) return null;	//Don't cache
 	
 	//Get the cached menu
@@ -134,13 +270,21 @@ function wpmenucache_get_cached_menu( $nav_menu , $args ){
 add_filter( 'wp_nav_menu' , 'wpmenucache_cache_menu' , 10 , 2 );
 function wpmenucache_cache_menu( $nav_menu , $args ){
 
+	$check_select = false;
+	switch( wpmenucache_cache_state() ){
+		case 0: return null;				//No cache
+		case 1:	break;						//Global cache only
+		case 2:	$check_select = true;	//Possible individual cache
+				break;
+	}
+
 	//Ignore menu segments
 	if( isset( $args->uber_segment ) ){
 		return $nav_menu;
 	}
 
 	//Get the key for this menu
-	$key = wpmenucache_get_transient_key( $args );
+	$key = wpmenucache_get_transient_key( $args , $check_select );
 	//No key?  Just return what was passed without caching
 	if( !$key ) return $nav_menu;
 
@@ -150,12 +294,14 @@ function wpmenucache_cache_menu( $nav_menu , $args ){
 	//Cache the menu / store transient
 	set_transient( $key , $nav_menu , $expiration );
 
+	/*
 	//Add key to transients key list
 	$keys = get_option( WPMENUCACHE_TRANSIENTS_KEYS_OP , array() );
 	$keys[$key] = 'cached';
 
 	update_option( WPMENUCACHE_TRANSIENTS_KEYS_OP , $keys );
-	
+	*/
+
 	//Return what was passed
 	return $nav_menu;
 }
@@ -170,6 +316,16 @@ add_action( 'wp_update_nav_menu', 'wpmenucache_update_menu' , 10 , 1 );
 
 
 function wpmenucache_clear_transients(){
+
+	global $wpdb;
+	$query = "DELETE FROM {$wpdb->prefix}options ".
+				"WHERE option_name LIKE ('\_transient\_".WPMENUCACHE_TRANSIENT_PREFIX."%') OR ".
+						"option_name LIKE ('\_transient\_timeout\_".WPMENUCACHE_TRANSIENT_PREFIX."%')";
+	//echo $query;
+
+	$wpdb->query( $query );
+
+	/*
 	//Clear all the transients
 	$keys = get_option( WPMENUCACHE_TRANSIENTS_KEYS_OP , array() );
 	//up( $keys );
@@ -179,4 +335,5 @@ function wpmenucache_clear_transients(){
 	}
 	//Reset Keys
 	update_option( WPMENUCACHE_TRANSIENTS_KEYS_OP , array() );
+	*/
 }

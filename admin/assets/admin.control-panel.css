@@ -4,3 +4,32 @@
 h2.nav-tab-wrapper{
 	padding-left:0;
 }
+.uber-radio-description{
+	font-size:12px;
+	color:#888;
+	display:block;
+	padding:5px 0 0 25px;
+}
+
+
+.wpmc-multicheck-wrap{
+
+}
+.wpmc-multicheck-group{
+	max-height:150px;
+	overflow-y:auto;
+	border: 1px solid #EEE;
+	padding: 10px;
+}
+.wpmc-multicheck-group .wpmc-multicheck-op{
+	width:270px;
+	padding:2px 15px 2px 0;
+	float:left;
+	height:20px;
+	line-height:20px;
+	overflow:hidden;
+	
+}
+.wpmc-multicheck-group .wpmc-multicheck-op label{
+	font-size:12px;
+}
