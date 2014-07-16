@@ -5,7 +5,7 @@ Plugin URI: http://sevenspark.com
 Description: Speed up menu generation by caching your menu output to minimze your database queries
 Author: Chris Mavricos, SevenSpark
 Author URI: http://sevenspark.com
-Version: 0.1
+Version: 0.2
 */
 
 /* Copyright 2014 Chris Mavricos, SevenSpark */
@@ -58,7 +58,7 @@ final class WPMenuCache {
 		// Plugin version
 
 		if( ! defined( 'WPMENUCACHE_VERSION' ) )
-			define( 'WPMENUCACHE_VERSION', '.1' );
+			define( 'WPMENUCACHE_VERSION', '0.2' );
 
 		if( ! defined( 'WPMENUCACHE_BASENAME' ) )
 			define( 'WPMENUCACHE_BASENAME' , plugin_basename( __FILE__ ) );
