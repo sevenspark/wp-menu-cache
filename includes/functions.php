@@ -30,7 +30,7 @@ function wpmenucache_get_transient_key( $args , $check_select = false ){
 
 		//Menu
 		if( isset( $args->menu ) && $args->menu ){
-			$menu_id = $args->menu;
+			$menu_id = $args->menu->term_id;
 		}
 		else{
 			if( $theme_location && has_nav_menu( $theme_location ) ){
