@@ -249,6 +249,7 @@ function wpmenucache_get_cached_menu( $nav_menu , $args ){
 	
 	//Get the key for this menu
 	$key = wpmenucache_get_transient_key( $args , $check_select );
+	$key = apply_filters( 'wpmenucache-transient-key-get', $key, $args, $check_select );
 	//echo $key;
 	if( !$key ) return null;	//Don't cache
 	
@@ -285,6 +286,7 @@ function wpmenucache_cache_menu( $nav_menu , $args ){
 
 	//Get the key for this menu
 	$key = wpmenucache_get_transient_key( $args , $check_select );
+	$key = apply_filters( 'wpmenucache-transient-key-set', $key, $args, $check_select );
 	//No key?  Just return what was passed without caching
 	if( !$key ) return $nav_menu;
 
